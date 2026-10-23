@@ -5,13 +5,27 @@ import { useAuth } from "../auth.jsx";
 import { LogoImg } from "./ui.jsx";
 
 const ADMIN_NAV = [
-  ["/", "🏠", "Dashboard"], ["sec", "People"], ["/students", "🎓", "Students"], ["/trainers", "👩‍🏫", "Trainers"],
-  ["sec", "Academics"], ["/courses", "📚", "Courses & Intakes"], ["/attendance", "✅", "Attendance"], ["/progress", "📈", "Progress"], ["/certificates", "🏅", "Certificates"],
-  ["sec", "Finance"], ["/payments", "💳", "Payments"], ["/reports", "📊", "Reports"],
-  ["sec", "System"], ["/logs", "🧾", "Logs"], ["/settings", "⚙️", "Settings"],
+  ["/", "speedometer2", "Dashboard"],
+  ["sec", "People"],
+  ["/students", "mortarboard", "Students"],
+  ["/trainers", "person-badge", "Trainers"],
+  ["sec", "Academics"],
+  ["/courses", "journal-bookmark", "Courses & Intakes"],
+  ["/attendance", "calendar-check", "Attendance"],
+  ["/progress", "graph-up-arrow", "Progress"],
+  ["/certificates", "award", "Certificates"],
+  ["sec", "Finance"],
+  ["/payments", "credit-card", "Payments"],
+  ["/reports", "bar-chart-line", "Reports"],
+  ["sec", "System"],
+  ["/logs", "clipboard-data", "Logs"],
+  ["/settings", "gear", "Settings"],
 ];
 const TRAINER_NAV = [
-  ["/", "🏠", "Dashboard"], ["/students", "🎓", "My Students"], ["/attendance", "✅", "Attendance"], ["/progress", "📈", "Progress"],
+  ["/", "speedometer2", "Dashboard"],
+  ["/students", "mortarboard", "My Students"],
+  ["/attendance", "calendar-check", "Attendance"],
+  ["/progress", "graph-up-arrow", "Progress"],
 ];
 
 export default function Layout() {
@@ -39,7 +53,7 @@ export default function Layout() {
         <nav className="nav">
           {items.map((it, i) => it[0] === "sec"
             ? <div key={i} className="sec">{it[1]}</div>
-            : <NavLink key={it[0]} to={it[0]} end={it[0] === "/"} className={({ isActive }) => (isActive ? "active" : "")}><span>{it[1]}</span>{it[2]}</NavLink>)}
+            : <NavLink key={it[0]} to={it[0]} end={it[0] === "/"} className={({ isActive }) => (isActive ? "active" : "")}><i className={`bi bi-${it[1]}`}></i>{it[2]}</NavLink>)}
         </nav>
         <div className="side-foot">
           <b>{user.name}</b><span style={{ textTransform: "capitalize" }}>{user.role}</span>
@@ -55,7 +69,10 @@ export default function Layout() {
           <form className="search" onSubmit={(e) => { e.preventDefault(); if (q.trim().length > 1) nav(`/search?q=${encodeURIComponent(q.trim())}`); }}>
             <input placeholder={isAdmin ? "Search name, number, phone, course, receipt, M-Pesa code, certificate…" : "Search students by name, number, phone or course…"} value={q} onChange={(e) => setQ(e.target.value)} />
           </form>
-          <button className="bell" onClick={() => nav("/notifications")} aria-label="Notifications">🔔{unread > 0 && <i>{unread > 99 ? "99+" : unread}</i>}</button>
+          <button className="bell" onClick={() => nav("/notifications")} aria-label="Notifications">
+  <i className="bi bi-bell"></i>
+  {unread > 0 && <span className="count">{unread > 99 ? "99+" : unread}</span>}
+</button>
         </header>
         <main className="content"><Outlet /></main>
       </div>

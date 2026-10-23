@@ -20,8 +20,8 @@ def _db_url():
 
 
 class Config:
-    SECRET_KEY = os.getenv("SECRET_KEY", "dev-secret-change-me")
-    JWT_SECRET_KEY = os.getenv("JWT_SECRET_KEY", "dev-jwt-secret-change-me-please-32b")
+    SECRET_KEY = os.getenv("SECRET_KEY", "lautreelllatwrwqhuihsnb126536")
+    JWT_SECRET_KEY = os.getenv("JWT_SECRET_KEY", "lautrensbxbhsjjakkakhhshh")
     JWT_ACCESS_TOKEN_EXPIRES = 60 * 60 * 12  # 12 hours
     SQLALCHEMY_DATABASE_URI = _db_url()
     SQLALCHEMY_ENGINE_OPTIONS = {"pool_pre_ping": True, "pool_recycle": 280}

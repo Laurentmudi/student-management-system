@@ -19,6 +19,7 @@ export default function Login() {
       <form className="auth-card" onSubmit={submit}>
         <LogoImg />
         <h1>Tu-Code Academy</h1>
+        
         <p className="muted">Sign in to the Student Management System</p>
         {err && <div className="alert err">{err}</div>}
         <label className="field"><span>Email</span><input type="email" required autoFocus value={email} onChange={(e) => setEmail(e.target.value)} autoComplete="username" /></label>

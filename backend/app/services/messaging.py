@@ -31,14 +31,15 @@ def _africastalking(channel, to, body):
     user, key, sender = get_setting("at_username"), get_setting("at_api_key"), get_setting("at_sender_id")
     if not (user and key):
         raise RuntimeError("Africa's Talking credentials not configured")
+    sandbox = user.lower() == "sandbox"
+    host = "api.sandbox.africastalking.com" if sandbox else "api.africastalking.com"
     data = {"username": user, "to": to, "message": body}
-    if sender:
+    if sender and not sandbox:
         data["from"] = sender
-    r = requests.post("https://api.africastalking.com/version1/messaging", data=data, timeout=20,
+    r = requests.post(f"https://{host}/version1/messaging", data=data, timeout=20,
                       headers={"apiKey": key, "Accept": "application/json"})
     if r.status_code >= 300:
         raise RuntimeError(f"Africa's Talking error {r.status_code}: {r.text[:150]}")
-
 
 def enabled_channels():
     ch = []
@@ -79,3 +80,5 @@ def send_to_student(student, kind, body, dedupe_key=None, channels=None):
                                   to_number=to, body=body, status=status, error=err))
         results.append((ch, status))
     return results
+
+
