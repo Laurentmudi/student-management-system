@@ -27,12 +27,15 @@ DEFAULT_SETTINGS = {
     "msg_provider": "log",           # log | twilio | africastalking
     "channel_sms": "1",
     "channel_whatsapp": "1",
+    "channel_email": "1",
+    "smtp_host": "smtp.gmail.com", "smtp_port": "587", "smtp_user": "", "smtp_password": "", "smtp_from": "",
     "remind_days_before": "3",       # send a reminder N days before the due date
     "remind_overdue_every": "7",     # repeat overdue reminders every N days
     "twilio_sid": "", "twilio_token": "", "twilio_sms_from": "", "twilio_whatsapp_from": "",
     "at_username": "", "at_api_key": "", "at_sender_id": "",
 }
-SECRET_SETTINGS = {"twilio_token", "at_api_key"}
+
+SECRET_SETTINGS = {"twilio_token", "at_api_key", "smtp_password"}
 
 
 # ---------- settings ----------
@@ -110,6 +113,7 @@ def trainer_scope_filter(query, user):
     if intake_ids:
         cond = db.or_(cond, Student.intake_id.in_(intake_ids))
     return query.filter(cond)
+
 
 
 def can_access_student(user, student):
@@ -212,3 +216,4 @@ def paginate(query, default_per_page=20):
     total = query.count()
     items = query.limit(per).offset((page - 1) * per).all()
     return items, {"page": page, "per_page": per, "total": total, "pages": max(1, -(-total // per))}
+

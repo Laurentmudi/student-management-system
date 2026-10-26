@@ -6,7 +6,7 @@ export default function Logs() {
   return (
     <>
       <PageHeader title="Logs" sub="Audit trail of user activity and outgoing messages" />
-      <div className="tabs"><button className={tab === "activity" ? "on" : ""} onClick={() => setTab("activity")}>Activity log</button><button className={tab === "messages" ? "on" : ""} onClick={() => setTab("messages")}>SMS / WhatsApp messages</button></div>
+      <div className="tabs"><button className={tab === "activity" ? "on" : ""} onClick={() => setTab("activity")}>Activity log</button><button className={tab === "messages" ? "on" : ""} onClick={() => setTab("messages")}>Emails</button></div>
       {tab === "activity" ? <Activity /> : <Messages />}
     </>
   );

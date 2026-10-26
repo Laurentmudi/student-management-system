@@ -3,6 +3,8 @@
     python seed.py            # admin only
     python seed.py --demo     # admin + sample trainers, courses, students, payments
 """
+
+
 import os
 import sys
 from datetime import date, timedelta

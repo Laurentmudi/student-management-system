@@ -189,7 +189,7 @@ class MessageLog(db.Model):
     channel = db.Column(db.String(15), nullable=False)  # sms | whatsapp
     kind = db.Column(db.String(30), nullable=False)  # reminder_before | reminder_overdue | payment | completion | certificate
     dedupe_key = db.Column(db.String(80), index=True)
-    to_number = db.Column(db.String(30))
+    to_number = db.Column(db.String(150)) 
     body = db.Column(db.Text)
     status = db.Column(db.String(20))  # sent | simulated | failed
     error = db.Column(db.String(255))

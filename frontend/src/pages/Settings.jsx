@@ -41,11 +41,22 @@ export default function Settings() {
       <fieldset><legend>Payment reminders</legend><div className="form-grid">
         <Field label="Send reminder N days before due date"><input type="number" min="0" value={f.remind_days_before} onChange={set("remind_days_before")} /></Field>
         <Field label="Repeat overdue reminders every N days"><input type="number" min="1" value={f.remind_overdue_every} onChange={set("remind_overdue_every")} /></Field>
+        <Field label="Email"><label><input type="checkbox" checked={f.channel_email === "1"} onChange={set("channel_email")} /> Enabled</label></Field>
         <Field label="SMS"><label><input type="checkbox" checked={f.channel_sms === "1"} onChange={set("channel_sms")} /> Enabled</label></Field>
         <Field label="WhatsApp"><label><input type="checkbox" checked={f.channel_whatsapp === "1"} onChange={set("channel_whatsapp")} /> Enabled</label></Field>
       </div>
         <p className="muted">Reminders run automatically every day (08:00 Nairobi time by default). You can also trigger them now:</p>
         <button type="button" className="btn" onClick={runNow}>Run reminders now</button></fieldset>
+        <fieldset><legend>Email (Gmail or any SMTP)</legend>
+        <div className="alert info">Sent to students who have an email address on file. With the email and app password left empty, emails are only recorded in <i>Logs → Messages</i>. For Gmail, turn on 2-Step Verification and create an <b>App password</b> in your Google account, then paste it below.</div>
+        <div className="form-grid">
+          <Field label="SMTP host"><input value={f.smtp_host} onChange={set("smtp_host")} placeholder="smtp.gmail.com" /></Field>
+          <Field label="SMTP port" hint="587 (default) or 465"><input value={f.smtp_port} onChange={set("smtp_port")} placeholder="587" /></Field>
+          <Field label="Email address (login)"><input type="email" value={f.smtp_user} onChange={set("smtp_user")} placeholder="yourschool@gmail.com" autoComplete="off" /></Field>
+          <Field label="App password"><input type="password" value={f.smtp_password} onChange={set("smtp_password")} autoComplete="new-password" /></Field>
+          <Field label="Send as (optional)" hint="Leave empty to use the login address"><input value={f.smtp_from} onChange={set("smtp_from")} /></Field>
+        </div>
+      </fieldset>
       <fieldset><legend>SMS / WhatsApp provider</legend>
         <div className="alert info">With provider <b>Log only</b>, messages are recorded in <i>Logs → Messages</i> but not delivered — ideal for testing. Choose Twilio (SMS + WhatsApp) or Africa's Talking (SMS) and enter credentials to send real messages.</div>
         <div className="form-grid">

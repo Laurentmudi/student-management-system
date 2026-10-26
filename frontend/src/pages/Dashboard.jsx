@@ -11,6 +11,7 @@ const Stat = ({ i, l, v, c = "" }) => (
   </div>
 );
 
+
 const Banner = ({ hello, text, children }) => (
   <div className="banner">
     <div>

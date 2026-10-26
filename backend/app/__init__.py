@@ -8,6 +8,17 @@ from .config import Config
 from .extensions import cors, db, jwt
 
 
+def widen_log_column():
+    """Older databases created message_logs.to_number as VARCHAR(30); email addresses need more room.
+    Safe to run on every start (it does nothing when already widened)."""
+    from sqlalchemy import text
+    try:
+        if db.engine.dialect.name == "mysql":
+            db.session.execute(text("ALTER TABLE message_logs MODIFY to_number VARCHAR(150) NULL"))
+            db.session.commit()
+    except Exception:
+        db.session.rollback()
+
 def create_app(config=None):
     app = Flask(__name__)
     app.config.from_object(Config)
@@ -53,6 +64,7 @@ def create_app(config=None):
 
     with app.app_context():
         db.create_all()
+        widen_log_column()
 
     if app.config["ENABLE_SCHEDULER"] and not app.config.get("TESTING"):
         # avoid starting twice under the Flask reloader
