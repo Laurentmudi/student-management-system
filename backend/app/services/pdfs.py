@@ -3,7 +3,7 @@ import os
 
 import qrcode
 from flask import current_app
-from PIL import Image, ImageDraw, ImageFont
+from PIL import Image, ImageDraw, ImageFont, ImageOps
 from reportlab.lib import colors
 from reportlab.lib.pagesizes import A4, landscape
 from reportlab.lib.styles import ParagraphStyle, getSampleStyleSheet
@@ -15,9 +15,11 @@ from reportlab.platypus import Paragraph, SimpleDocTemplate, Spacer, Table, Tabl
 from ..utils import get_setting
 from . import fees
 
-BRAND = colors.HexColor("#1d4ed8")
-DARK = colors.HexColor("#0f172a")
-MUTED = colors.HexColor("#64748b")
+# Brand colours (navy + gold)
+BRAND = colors.HexColor("#1D2245")
+GOLD = colors.HexColor("#F7B500")
+DARK = colors.HexColor("#1D2245")
+MUTED = colors.HexColor("#666666")
 
 
 def logo_path():
@@ -32,12 +34,12 @@ def logo_path():
         os.makedirs(folder, exist_ok=True)
         img = Image.new("RGBA", (400, 400), (0, 0, 0, 0))
         d = ImageDraw.Draw(img)
-        d.ellipse((10, 10, 390, 390), fill=(29, 78, 216, 255))
+        d.ellipse((10, 10, 390, 390), fill=(29, 34, 69, 255))
         try:
             font = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", 170)
         except Exception:
             font = ImageFont.load_default()
-        d.text((200, 200), "TC", fill=(255, 255, 255, 255), font=font, anchor="mm")
+        d.text((200, 200), "TC", fill=(247, 181, 0, 255), font=font, anchor="mm")
         img.save(p)
     return p
 
@@ -67,6 +69,8 @@ def receipt_pdf(payment):
     # header band
     c.setFillColor(BRAND)
     c.rect(0, h - 38 * mm, w, 38 * mm, fill=1, stroke=0)
+    c.setFillColor(GOLD)
+    c.rect(0, h - 40 * mm, w, 2 * mm, fill=1, stroke=0)
     c.drawImage(ImageReader(logo_path()), 15 * mm, h - 32 * mm, 26 * mm, 26 * mm, mask="auto")
     c.setFillColor(colors.white)
     c.setFont("Helvetica-Bold", 20)
@@ -75,8 +79,10 @@ def receipt_pdf(payment):
     c.drawString(46 * mm, h - 23 * mm, get_setting("academy_address"))
     line = "  |  ".join(x for x in [get_setting("academy_phone"), get_setting("academy_email")] if x)
     c.drawString(46 * mm, h - 28 * mm, line)
+    c.setFillColor(GOLD)
     c.setFont("Helvetica-Bold", 16)
     c.drawRightString(w - 15 * mm, h - 18 * mm, "PAYMENT RECEIPT")
+    c.setFillColor(colors.white)
     c.setFont("Helvetica", 10)
     c.drawRightString(w - 15 * mm, h - 25 * mm, f"No. {payment.receipt_number}")
     # body table
@@ -93,11 +99,11 @@ def receipt_pdf(payment):
     for k, v in rows:
         c.setFillColor(MUTED); c.setFont("Helvetica", 10); c.drawString(20 * mm, y, k)
         c.setFillColor(DARK); c.setFont("Helvetica-Bold", 11); c.drawString(75 * mm, y, str(v))
-        c.setStrokeColor(colors.HexColor("#e2e8f0")); c.line(20 * mm, y - 3 * mm, w - 20 * mm, y - 3 * mm)
+        c.setStrokeColor(colors.HexColor("#eeeeee")); c.line(20 * mm, y - 3 * mm, w - 20 * mm, y - 3 * mm)
         y -= 9 * mm
     # amounts box
     y -= 4 * mm
-    c.setFillColor(colors.HexColor("#eff6ff")); c.roundRect(20 * mm, y - 38 * mm, w - 40 * mm, 42 * mm, 3 * mm, fill=1, stroke=0)
+    c.setFillColor(colors.HexColor("#fff6d6")); c.roundRect(20 * mm, y - 38 * mm, w - 40 * mm, 42 * mm, 3 * mm, fill=1, stroke=0)
     c.setFillColor(MUTED); c.setFont("Helvetica", 10)
     c.drawString(26 * mm, y - 6 * mm, "AMOUNT PAID")
     c.setFillColor(BRAND); c.setFont("Helvetica-Bold", 24)
@@ -120,45 +126,85 @@ def receipt_pdf(payment):
     return buf
 
 
+# =====================================================================
+#  CERTIFICATE - uses your template image (no old design any more)
+#  Put the template in:  backend/uploads/branding/
+#  and name it:          certificate_template.jpg   (.jpeg or .png also work)
+# =====================================================================
+# Extra file names to try if certificate_template.* is not found
+CERT_TEMPLATE_EXTRA_NAMES = ["1000883699 (1).jpg"]
+
+# x, y are fractions of the image: x=0.5 is the middle, y=0.0 is the top edge, y=1.0 the bottom edge
+CERT_FIELDS = {
+    # Student name: biggest text, brand navy, gold line underneath so it stands out from the template wording
+    "name":   {"x": 0.50, "y": 0.38, "size": 24, "font": "Times-BoldItalic", "color": "#1D2245", "rule": True},
+    # Course: bold navy with a thin gold line underneath
+    "course": {"x": 0.50, "y": 0.58, "size": 20, "font": "Helvetica-Bold",   "color": "#1D2245", "rule": True},
+    # Date and certificate number: small and quiet
+    "date":   {"x": 0.55, "y": 0.88, "size": 13, "font": "Helvetica",        "color": "#555555"},
+    "number": {"x": 0.50, "y": 0.94, "size": 10, "font": "Helvetica-Bold",   "color": "#555555"},
+    # QR code in the bottom right corner (x, y = centre of the QR)
+    "qr":     {"x": 0.85, "y": 0.79, "size_mm": 20},
+}
+RULE_COLOR = "#F7B500"   # gold line under the name and course
+
+
+def certificate_template_path():
+    folder = os.path.join(current_app.config["UPLOAD_FOLDER"], "branding")
+    names = [f"certificate_template.{e}" for e in ("jpg", "jpeg", "png", "JPG", "JPEG", "PNG")]
+    for name in names + CERT_TEMPLATE_EXTRA_NAMES:
+        p = os.path.join(folder, name)
+        if os.path.isfile(p):
+            return p
+    raise FileNotFoundError(
+        f"Certificate template not found. Put certificate_template.jpg in this folder: {folder}")
+
+
 def certificate_pdf(cert):
+    template = certificate_template_path()
     s = cert.student
+
+    img = Image.open(template)
+    try:
+        img = ImageOps.exif_transpose(img)   # some photos are stored rotated
+    except Exception:
+        pass
+    img = img.convert("RGB")                  # fixes CMYK / transparent files
+    iw, ih = img.size
+    w = 297 * mm                              # A4-landscape width; height follows the template shape
+    h = w * ih / iw
+    img_buf = io.BytesIO()
+    img.save(img_buf, "JPEG", quality=95)
+    img_buf.seek(0)
+
     buf = io.BytesIO()
-    w, h = landscape(A4)
-    c = canvas.Canvas(buf, pagesize=landscape(A4))
+    c = canvas.Canvas(buf, pagesize=(w, h))
     c.setTitle(f"Certificate {cert.certificate_number}")
-    c.setStrokeColor(BRAND); c.setLineWidth(6); c.rect(10 * mm, 10 * mm, w - 20 * mm, h - 20 * mm)
-    c.setStrokeColor(colors.HexColor("#93c5fd")); c.setLineWidth(1.5); c.rect(15 * mm, 15 * mm, w - 30 * mm, h - 30 * mm)
-    c.drawImage(ImageReader(logo_path()), w / 2 - 15 * mm, h - 50 * mm, 30 * mm, 30 * mm, mask="auto")
-    c.setFillColor(DARK); c.setFont("Helvetica-Bold", 16)
-    c.drawCentredString(w / 2, h - 57 * mm, get_setting("academy_name").upper())
-    c.setFillColor(BRAND); c.setFont("Times-Bold", 38)
-    c.drawCentredString(w / 2, h - 77 * mm, "Certificate of Completion")
-    c.setFillColor(MUTED); c.setFont("Helvetica", 12)
-    c.drawCentredString(w / 2, h - 92 * mm, "This is to certify that")
-    c.setFillColor(DARK); c.setFont("Times-BoldItalic", 34)
-    c.drawCentredString(w / 2, h - 108 * mm, s.full_name)
-    c.setStrokeColor(MUTED); c.setLineWidth(0.6); c.line(w / 2 - 80 * mm, h - 112 * mm, w / 2 + 80 * mm, h - 112 * mm)
-    c.setFillColor(MUTED); c.setFont("Helvetica", 12)
-    c.drawCentredString(w / 2, h - 123 * mm, "has successfully completed the course")
-    c.setFillColor(DARK); c.setFont("Helvetica-Bold", 20)
-    c.drawCentredString(w / 2, h - 135 * mm, s.course.name)
-    c.setFillColor(MUTED); c.setFont("Helvetica", 11)
-    c.drawCentredString(w / 2, h - 146 * mm,
-                        f"Date of Completion: {cert.completion_date.strftime('%d %B %Y')}     |     Date of Issue: {cert.issue_date.strftime('%d %B %Y')}")
-    # signature
-    c.setStrokeColor(DARK); c.line(35 * mm, 38 * mm, 95 * mm, 38 * mm)
-    c.setFillColor(DARK); c.setFont("Helvetica-Bold", 11); c.drawCentredString(65 * mm, 32 * mm, get_setting("signatory_name"))
-    c.setFont("Helvetica", 9); c.setFillColor(MUTED); c.drawCentredString(65 * mm, 27 * mm, get_setting("signatory_title") or "Authorized Signature")
-    c.setFont("Helvetica-Oblique", 14); c.setFillColor(BRAND)
-    c.drawCentredString(65 * mm, 41 * mm, get_setting("signatory_name"))
-    # QR + cert no
+    c.drawImage(ImageReader(img_buf), 0, 0, w, h)
+
+    def put(key, text):
+        f = CERT_FIELDS[key]
+        x, y = w * f["x"], h * (1 - f["y"])
+        c.setFillColor(colors.HexColor(f["color"]))
+        c.setFont(f["font"], f["size"])
+        c.drawCentredString(x, y, text)
+        if f.get("rule"):                                   # gold line under the text
+            half = c.stringWidth(text, f["font"], f["size"]) / 2 + 6 * mm
+            c.setStrokeColor(colors.HexColor(RULE_COLOR))
+            c.setLineWidth(1.6)
+            c.line(x - half, y - f["size"] * 0.35, x + half, y - f["size"] * 0.35)
+
+    put("name", s.full_name)
+    put("course", s.course.name)
+    put("date", cert.completion_date.strftime("%d %B %Y"))
+    put("number", f"Certificate No: {cert.certificate_number}")
+
+    q = CERT_FIELDS["qr"]
+    size = q["size_mm"] * mm
     url = f"{current_app.config['FRONTEND_URL']}/verify/certificate/{cert.certificate_number}"
-    c.drawImage(qr_reader(url), w - 60 * mm, 22 * mm, 28 * mm, 28 * mm)
-    c.setFont("Helvetica", 8); c.setFillColor(MUTED)
-    c.drawCentredString(w - 46 * mm, 18 * mm, "Scan to verify")
-    c.setFont("Helvetica-Bold", 10); c.setFillColor(DARK)
-    c.drawCentredString(w / 2, 24 * mm, f"Certificate No: {cert.certificate_number}")
-    c.showPage(); c.save()
+    c.drawImage(qr_reader(url), w * q["x"] - size / 2, h * (1 - q["y"]) - size / 2, size, size)
+    c.showPage()
+    c.save()
     buf.seek(0)
     return buf
 
@@ -187,8 +233,8 @@ def table_pdf(title, columns, rows, summary=None, subtitle=None):
     t = Table(data, repeatRows=1)
     t.setStyle(TableStyle([
         ("BACKGROUND", (0, 0), (-1, 0), BRAND),
-        ("ROWBACKGROUNDS", (0, 1), (-1, -1), [colors.white, colors.HexColor("#f1f5f9")]),
-        ("GRID", (0, 0), (-1, -1), 0.25, colors.HexColor("#cbd5e1")),
+        ("ROWBACKGROUNDS", (0, 1), (-1, -1), [colors.white, colors.HexColor("#f8f9fa")]),
+        ("GRID", (0, 0), (-1, -1), 0.25, colors.HexColor("#dddddd")),
         ("VALIGN", (0, 0), (-1, -1), "TOP"),
     ]))
     story.append(t)
