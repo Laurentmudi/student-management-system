@@ -1,4 +1,5 @@
 import os
+import re
 
 from flask import Blueprint, current_app, jsonify, send_file
 
@@ -19,12 +20,18 @@ def logo():
     return send_file(pdfs.logo_path())
 
 
+def short_number(number):
+    """Display-only: TCA-CERT-2026-00001 -> TCA-26-00001. The stored number is never changed."""
+    n = number.replace("-CERT-", "-")
+    return re.sub(r"-20(\d\d)-", r"-\1-", n)
+
+
 @bp.get("/verify/certificate/<number>")
 def verify_certificate(number):
     c = Certificate.query.filter_by(certificate_number=number).first()
     if not c:
         return jsonify(valid=False), 404
-    return jsonify(valid=True, certificate_number=c.certificate_number, student_name=c.student.full_name,
+    return jsonify(valid=True, certificate_number=c.certificate_number, display_number=short_number(c.certificate_number), student_name=c.student.full_name,
                    course=c.student.course.name, completion_date=c.completion_date.isoformat(),
                    issue_date=c.issue_date.isoformat(), academy=get_setting("academy_name"))
 

@@ -141,10 +141,12 @@ CERT_FIELDS = {
     # Course: bold navy with a thin gold line underneath
     "course": {"x": 0.50, "y": 0.58, "size": 20, "font": "Helvetica-Bold",   "color": "#1D2245", "rule": True},
     # Date and certificate number: small and quiet
-    "date":   {"x": 0.55, "y": 0.88, "size": 13, "font": "Helvetica",        "color": "#555555"},
+    "date":   {"x": 0.53, "y": 0.88, "size": 10, "font": "Helvetica",        "color": "#555555"},
     "number": {"x": 0.50, "y": 0.94, "size": 10, "font": "Helvetica-Bold",   "color": "#555555"},
     # QR code in the bottom right corner (x, y = centre of the QR)
     "qr":     {"x": 0.85, "y": 0.79, "size_mm": 20},
+
+    "credit": {"x": 0.50, "y": 0.69, "size": 18, "font": "Times-BoldItalic", "color": "#1D2245", "rule": True},
 }
 RULE_COLOR = "#F7B500"   # gold line under the name and course
 
@@ -198,6 +200,7 @@ def certificate_pdf(cert):
     put("course", s.course.name)
     put("date", cert.completion_date.strftime("%d %B %Y"))
     put("number", f"Certificate No: {cert.certificate_number}")
+    put("credit", "Credit")
 
     q = CERT_FIELDS["qr"]
     size = q["size_mm"] * mm

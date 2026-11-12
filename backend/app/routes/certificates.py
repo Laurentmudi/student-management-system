@@ -5,7 +5,7 @@ from flask import Blueprint, jsonify, request, send_file
 from ..extensions import db
 from ..models import CLEARED, Certificate, Student
 from ..serializers import certificate_dict
-from ..services import pdfs
+from ..services import fees, pdfs
 from ..services.messaging import send_to_student
 from ..utils import (admin_required, current_user, error, get_setting, log_activity, next_number, notify,
                      paginate)
@@ -32,6 +32,7 @@ def eligible():
     """Students whose status is Cleared (Completed) and who have no certificate yet."""
     issued_ids = db.session.query(Certificate.student_id)
     rows = Student.query.filter(Student.status == CLEARED, ~Student.id.in_(issued_ids)).order_by(Student.completed_on.desc()).all()
+    rows = [s for s in rows if fees.summary(s)["balance"] <= 0]   # fees must be fully paid
     return jsonify(items=[{"id": s.id, "student_number": s.student_number, "name": s.full_name,
                            "course_name": s.course.name,
                            "completed_on": s.completed_on.isoformat() if s.completed_on else None} for s in rows])
@@ -46,6 +47,10 @@ def generate():
         return error("Select a valid student")
     if s.status != CLEARED:
         return error("Only students with status 'Cleared (Completed)' are eligible for a certificate", 409)
+    balance = fees.summary(s)["balance"]
+    if balance > 0:
+        return error(f"Fees not fully paid. Outstanding balance: {get_setting('currency')} {balance:,.2f}. "
+                     "A certificate can only be issued once the balance is zero.", 409)
     if Certificate.query.filter_by(student_id=s.id).first():
         return error("A certificate has already been issued for this student", 409)
     c = Certificate(certificate_number="TMP", student_id=s.id, completion_date=s.completed_on or date.today(),
@@ -65,6 +70,9 @@ def generate():
 @admin_required
 def pdf(cid):
     c = db.get_or_404(Certificate, cid)
+    balance = fees.summary(c.student)["balance"]
+    if balance > 0:
+        return error(f"Fees not fully paid. Outstanding balance: {get_setting('currency')} {balance:,.2f}", 409)
     log_activity("certificate_viewed", c.certificate_number)
     db.session.commit()
     return send_file(pdfs.certificate_pdf(c), mimetype="application/pdf", download_name=f"{c.certificate_number}.pdf",
