@@ -101,6 +101,7 @@ function StudentPayments({ s, onChange }) {
 
 function ProgressTab({ s, onChange }) {
   const toast = useToast();
+  const { isAdmin } = useAuth();
   const [p, setP] = useState(s.progress_detail);
   const locked = ["Suspended", "Withdrawn"].includes(s.status);
   const toggle = async (m) => {
@@ -119,12 +120,28 @@ function ProgressTab({ s, onChange }) {
         <div className="stat"><div className="l">Overall progress</div><div className="v">{p.percent}%</div></div>
       </div>
       {locked && <div className="alert info">Progress is locked while the student is {s.status}.</div>}
+      {p.total > 0 && p.completed === p.total && (
+        <div className="verify-ok" style={{ marginBottom: "1rem", display: "flex", gap: ".8rem", alignItems: "center", flexWrap: "wrap" }}>
+          <i className="bi bi-mortarboard-fill" style={{ fontSize: "1.6rem", color: "#1D2245" }}></i>
+          <div style={{ flex: 1, minWidth: 200 }}>
+            <b>All modules completed.</b>
+            {isAdmin ? (
+              s.balance > 0
+                ? <div className="muted">Fees not cleared. Outstanding balance: <b style={{ color: "var(--red)" }}>{money(s.balance)}</b>. The certificate is released once the balance is zero.</div>
+                : <div className="muted">Fees fully paid. The student is ready for a certificate.</div>
+            ) : <div className="muted">The office will confirm the fee clearance before the certificate is issued.</div>}
+          </div>
+          {isAdmin && (s.balance > 0
+            ? <Link className="btn primary" to={`/students/${s.id}?tab=fees`}>Go to fees</Link>
+            : <Link className="btn primary" to="/certificates">Go to certificates</Link>)}
+        </div>
+      )}
       {!p.modules.length && <Empty>This course has no modules defined yet.</Empty>}
       {p.modules.map((m) => (
         <div key={m.id} className={`module-row ${m.completed ? "done" : ""}`}>
           <input type="checkbox" checked={m.completed} disabled={locked} onChange={() => toggle(m)} style={{ width: 20, height: 20 }} />
           <div style={{ flex: 1 }}><b>{m.position}. {m.name}</b>{m.completed_on && <div className="muted">Completed {fdate(m.completed_on)}</div>}</div>
-          {m.completed ? <Badge text="Paid" /> : null}
+          {m.completed ? <span className="badge green">Completed</span> : null}
         </div>))}
     </div>
   );

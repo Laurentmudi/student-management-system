@@ -12,8 +12,12 @@ from reportlab.lib.utils import ImageReader
 from reportlab.pdfgen import canvas
 from reportlab.platypus import Paragraph, SimpleDocTemplate, Spacer, Table, TableStyle
 
+
 from ..utils import get_setting
 from . import fees
+
+# Fixed brand files kept inside the project (these are deployed with the code)
+ASSETS_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), "assets")
 
 # Brand colours (navy + gold)
 BRAND = colors.HexColor("#1D2245")
@@ -29,6 +33,10 @@ def logo_path():
         p = os.path.join(folder, custom)
         if os.path.isfile(p):
             return p
+    for ext in ("png", "jpg", "jpeg"):
+        fixed = os.path.join(ASSETS_DIR, f"logo.{ext}")
+        if os.path.isfile(fixed):
+            return fixed
     p = os.path.join(folder, "default_logo.png")
     if not os.path.isfile(p):
         os.makedirs(folder, exist_ok=True)
@@ -152,14 +160,15 @@ RULE_COLOR = "#F7B500"   # gold line under the name and course
 
 
 def certificate_template_path():
-    folder = os.path.join(current_app.config["UPLOAD_FOLDER"], "branding")
+    folders = [ASSETS_DIR, os.path.join(current_app.config["UPLOAD_FOLDER"], "branding")]
     names = [f"certificate_template.{e}" for e in ("jpg", "jpeg", "png", "JPG", "JPEG", "PNG")]
-    for name in names + CERT_TEMPLATE_EXTRA_NAMES:
-        p = os.path.join(folder, name)
-        if os.path.isfile(p):
-            return p
+    for folder in folders:
+        for name in names + CERT_TEMPLATE_EXTRA_NAMES:
+            p = os.path.join(folder, name)
+            if os.path.isfile(p):
+                return p
     raise FileNotFoundError(
-        f"Certificate template not found. Put certificate_template.jpg in this folder: {folder}")
+        f"Certificate template not found. Put certificate_template.jpg in: {ASSETS_DIR}")
 
 
 def certificate_pdf(cert):
